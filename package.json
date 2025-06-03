@@ -13,7 +13,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@clerk/clerk-expo": "^1.0.0",
+    "@clerk/clerk-expo": "^2.12.0",
     "@expo/vector-icons": "^14.0.0",
     "@gorhom/bottom-sheet": "^4.6.1",
     "@likashefqet/react-native-image-zoom": "^3.0.0",
@@ -45,7 +45,7 @@
     "react-native": "0.73.6",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-ios-context-menu": "^2.5.1",
-    "react-native-ios-utilities": "^4.4.5",
+    "react-native-ios-utilities": "^4.5.3",
     "react-native-mmkv": "^2.12.2",
     "react-native-openai": "^0.6.1",
     "react-native-purchases": "^7.26.2",
