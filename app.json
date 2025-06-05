@@ -14,15 +14,15 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.supersimon.chatgpt"
+      "supportsTablet": false,
+      "bundleIdentifier": "co.ayova.galaxiesstarter"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.supersimon.chatgpt"
+      "package": "co.ayova.galaxiesstarter"
     },
     "web": {
       "bundler": "metro",

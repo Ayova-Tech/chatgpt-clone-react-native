@@ -4,6 +4,7 @@ export enum Role {
 }
 
 export interface Message {
+  id?: string; // Optional ID for client-side message tracking
   role: Role;
   content: string;
   imageUrl?: string;
