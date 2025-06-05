@@ -1,6 +1,9 @@
-# React Native ChatGPT Clone with Clerk & RevenueCat
+# Ayova ChatGPT Starter Project - React Native ChatGPT Clone with Clerk & RevenueCat
 
-This is a React Native ChatGPT clone using [Clerk](https://go.clerk.com/wvMHe8T) for user authentication and [RevenueCat](https://www.revenuecat.com/docs/getting-started/installation/reactnative?utm_medium=sponsored&utm_source=youtube&utm_campaign=SimonGrimm) for In-App purchases.
+If you have a problem getting development build for iOS, check the following link:
+[Development Build Guide for iOS](https://app.clickup.com/t/86etpnd2e)
+
+This is a React Native ChatGPT starter project using [Clerk](https://go.clerk.com/wvMHe8T) for user authentication and [RevenueCat](https://www.revenuecat.com/docs/getting-started/installation/reactnative?utm_medium=sponsored&utm_source=youtube&utm_campaign=SimonGrimm) for In-App purchases.
 
 Additional features:
 
@@ -17,47 +20,3 @@ Additional features:
 - [React Native OpenAI](https://github.com/candlefinance/react-native-openai) for streaming
 - [Image Zoom](https://github.com/likashefqet/react-native-image-zoom) for image zoom component
 - [Shimmer Placeholder](https://github.com/tomzaku/react-native-shimmer-placeholder) for loading placeholders
-
-## Screenshots
-
-<div style="display: flex; flex-direction: 'row';">
-<img src="./screenshots/1.png" width=30%>
-<img src="./screenshots/2.png" width=30%>
-<img src="./screenshots/3.png" width=30%>
-<img src="./screenshots/4.png" width=30%>
-<img src="./screenshots/5.png" width=30%>
-<img src="./screenshots/6.png" width=30%>
-<img src="./screenshots/7.png" width=30%>
-<img src="./screenshots/8.png" width=30%>
-<img src="./screenshots/9.png" width=30%>
-<img src="./screenshots/10.png" width=30%>
-<img src="./screenshots/11.png" width=30%>
-<img src="./screenshots/12.png" width=30%>
-<img src="./screenshots/13.png" width=30%>
-<img src="./screenshots/14.png" width=30%>
-</div>
-
-## Demo
-
-<div style="display: flex; flex-direction: 'row';">
-<img src="./screenshots/intro.gif" width=30%>
-<img src="./screenshots/chat.gif" width=30%>
-<img src="./screenshots/context.gif" width=30%>
-<img src="./screenshots/sqlite.gif" width=30%>
-<img src="./screenshots/purchase.gif" width=30%>
-<img src="./screenshots/explore.gif" width=30%>
-
-<img src="./screenshots/dalle.gif" width=30%>
-<img src="./screenshots/imagecontext.gif" width=30%>
-<img src="./screenshots/imagezoom.gif" width=30%>
-
-
-</div>
-
-## 🚀 More
-
-**Take a shortcut from web developer to mobile development fluency with guided learning**
-
-Enjoyed this project? Learn to use React Native to build production-ready, native mobile apps for both iOS and Android based on your existing web development skills.
-
-<a href="https://galaxies.dev"><img src="banner.png" height="auto" width="100%"></a>
