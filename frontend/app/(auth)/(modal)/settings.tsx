@@ -10,8 +10,8 @@ const Page = () => {
   const [key, setKey] = useMMKVString('apikey', keyStorage);
   const [organization, setOrganization] = useMMKVString('org', keyStorage);
 
-  const [apiKey, setApiKey] = useState(process.env.EXPO_PUBLIC_CHATGPT_KEY);
-  const [org, setOrg] = useState(process.env.EXPO_PUBLIC_CHATGPT_ORGANIZATION_ID);
+  const [apiKey, setApiKey] = useState('');
+  const [org, setOrg] = useState('');
   const router = useRouter();
 
   const { signOut } = useAuth();
