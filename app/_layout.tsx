@@ -9,6 +9,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+if (!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  throw new Error("Missing CLERK_PUBLISHABLE_KEY");
+}
+
 if (!CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing CLERK_PUBLISHABLE_KEY");
 }

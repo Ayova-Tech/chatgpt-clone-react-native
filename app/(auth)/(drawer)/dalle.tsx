@@ -25,11 +25,10 @@ import OpenAI from 'react-native-openai';
 const Page = () => {
   const [height, setHeight] = useState(0);
   const [key, setKey] = useMMKVString('apikey', keyStorage);
-  const [organization, setOrganization] = useMMKVString('org', keyStorage);
   const [messages, setMessages] = useState<Message[]>([]);
   const [working, setWorking] = useState(false);
 
-  if (!key || key === '' || !organization || organization === '') {
+  if (!key || key === '' ) {
     return <Redirect href={'/(auth)/(modal)/settings'} />;
   }
 
@@ -37,7 +36,6 @@ const Page = () => {
     () =>
       new OpenAI({
         apiKey: key,
-        organization,
       }),
     []
   );
