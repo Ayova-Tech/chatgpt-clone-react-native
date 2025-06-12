@@ -118,38 +118,45 @@ serve(async (req) => {
         );
       }
 
-      // --- OpenAI Chat Completion ---
+      // --- OpenAI Chat Completion (Streaming) ---
       const openai = new OpenAI({
         apiKey: openaiApiKey,
       });
 
       try {
-        const chatResponse = await openai.chat.completions.create({
-          messages: prompt,
+        // Request a streaming chat completion
+        const openaiStream = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
+          messages: prompt,
+          stream: true,
         });
-        if (
-          chatResponse.choices &&
-          chatResponse.choices.length > 0 &&
-          chatResponse.choices[0].message &&
-          chatResponse.choices[0].message.content
-        ) {
-          return new Response(
-            JSON.stringify({ response: chatResponse.choices[0].message.content }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
+
+        // Convert AsyncIterable to a ReadableStream
+        const encoder = new TextEncoder();
+        const body = new ReadableStream({
+          async start(controller) {
+            try {
+              for await (const chunk of openaiStream) {
+                const token = chunk.choices?.[0]?.delta?.content ?? "";
+                if (token) controller.enqueue(encoder.encode(token));
+              }
+            } catch (e) {
+              console.error("Streaming error:", e);
+              controller.error(e);
+            } finally {
+              controller.close();
             }
-          );
-        } else {
-          return new Response(
-            JSON.stringify({ error: "No chat response generated." }),
-            {
-              status: 500,
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-        }
+          },
+        });
+
+        return new Response(body, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
       } catch (chatError) {
         console.error("Error during chat completion:", chatError);
         return new Response(
