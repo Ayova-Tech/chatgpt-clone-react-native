@@ -7,60 +7,30 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import "jsr:@std/dotenv/load";
 
 import {
-  AzureOpenAI,
+  OpenAI,
   APIError,
 } from "https://deno.land/x/openai@v4.69.0/mod.ts";
 
-console.log(AzureOpenAI);
-if (AzureOpenAI) {
-  console.log("AzureOpenAI class is imported and defined.");
+console.log(OpenAI);
+if (OpenAI) {
+  console.log("OpenAI class is imported and defined.");
 } else {
-  console.error("AzureOpenAI class is NOT defined after import.");
+  console.error("OpenAI class is NOT defined after import.");
 }
 
 serve(async (req) => {
   try {
     // --- Environment Variable Checks ---
-    //IMAGE
-    const image_azureOpenaiEndpoint = Deno.env.get("AZURE_IMAGE_OPENAI_ENDPOINT");
-    const image_azureOpenaiApiKey = Deno.env.get("AZURE_IMAGE_OPENAI_API_KEY");
-    const image_apiVersion = Deno.env.get("AZURE_IMAGE_OPENAI_API_VERSION");
-    const image_deploymentNameEnv = Deno.env.get("AZURE_IMAGE_OPENAI_DEPLOYMENT_NAME");
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY_OMC");
 
-
-    //TEXT
-    const text_azureOpenaiEndpoint = Deno.env.get("AZURE_TEXT_OPENAI_API_KEY");
-    const text_azureOpenaiApiKey = Deno.env.get("AZURE_TEXT_OPENAI_API_VERSION");
-    const text_apiVersion = Deno.env.get("AZURE_TEXT_OPENAI_GENERATOR_ENDPOINT");
-    const text_deploymentNameEnv = Deno.env.get("AZURE_TEXT_OPENAI_GENERATOR_DEPLOYMENT");
-
-    if (
-      !image_azureOpenaiEndpoint ||
-      !image_azureOpenaiApiKey ||
-      !image_apiVersion ||
-      !image_deploymentNameEnv ||
-      !text_azureOpenaiEndpoint ||
-      !text_azureOpenaiApiKey ||
-      !text_apiVersion ||
-      !text_deploymentNameEnv
-    ) {
-      console.error(
-        "Missing one or more required environment variables for Azure OpenAI or Supabase."
-      );
+    if (!openaiApiKey) {
+      console.error("Missing required environment variable OPENAI_API_KEY_OMC");
       const missingVars = [];
-      if (!image_azureOpenaiEndpoint) missingVars.push("AZURE_IMAGE_OPENAI_ENDPOINT");
-      if (!image_azureOpenaiApiKey) missingVars.push("AZURE_IMAGE_OPENAI_API_KEY");
-      if (!image_apiVersion) missingVars.push("AZURE_IMAGE_OPENAI_API_VERSION");
-      if (!image_deploymentNameEnv) missingVars.push("AZURE_IMAGE_OPENAI_DEPLOYMENT_NAME");
-      if (!text_azureOpenaiEndpoint) missingVars.push("AZURE_TEXT_OPENAI_API_KEY");
-      if (!text_azureOpenaiApiKey) missingVars.push("AZURE_TEXT_OPENAI_API_VERSION");
-      if (!text_apiVersion) missingVars.push("AZURE_TEXT_OPENAI_GENERATOR_ENDPOINT");
-      if (!text_deploymentNameEnv) missingVars.push("AZURE_TEXT_OPENAI_GENERATOR_DEPLOYMENT");
+      if (!openaiApiKey) missingVars.push("OPENAI_API_KEY_OMC");
       console.error("Missing: " + missingVars.join(", "));
       return new Response(
         JSON.stringify({
-          error:
-            "Server configuration error: Missing required environment variables.",
+          error: "Server configuration error: Missing required environment variables.",
         }),
         {
           status: 500,
@@ -70,18 +40,6 @@ serve(async (req) => {
     } else {
       console.log("Env variables loaded successfully.");
     }
-
-    // // --- Authentication ---
-    // const authHeader = req.headers.get("Authorization");
-    // if (!authHeader) {
-    //   return new Response(
-    //     JSON.stringify({ error: "Authorization header missing." }),
-    //     {
-    //       status: 401,
-    //       headers: { "Content-Type": "application/json" },
-    //     }
-    //   );
-    // }
 
     // --- Path Routing ---
     const url = new URL(req.url);
@@ -112,38 +70,19 @@ serve(async (req) => {
         );
       }
 
-      // --- Azure OpenAI Image Generation ---
-      console.log(
-        `Initializing AzureOpenAI client. Endpoint: ${image_azureOpenaiEndpoint}, API Version: ${image_apiVersion}, Deployment: ${image_deploymentNameEnv}`
-      );
-
-      console.log("Azure OpenAI Client Config:", {
-        endpoint: image_azureOpenaiEndpoint,
-        apiKeyIsSet: !!image_azureOpenaiApiKey,
-        apiVersion: image_apiVersion,
-        deployment: image_deploymentNameEnv,
-      });
-      const azureClient = new AzureOpenAI({
-        endpoint: image_azureOpenaiEndpoint,
-        apiKey: image_azureOpenaiApiKey,
-        apiVersion: image_apiVersion,
-        deployment: image_deploymentNameEnv, // The deployment name is passed to the client constructor
+      // --- OpenAI Image Generation ---
+      const openai = new OpenAI({
+        apiKey: openaiApiKey,
       });
 
-      console.log(
-        `Generating image for prompt: "${prompt}" using Azure deployment: ${image_deploymentNameEnv}`
-      );
-
-      const imageResponse = await azureClient.images.generate({
+      const imageResponse = await openai.images.generate({
         prompt: prompt,
-        model: "", // For Azure DALL-E 3, deployment name in client config specifies the model
         n: 1,
         size: "1024x1024",
-        style: "vivid", // or "natural"
       });
 
       console.log(
-        "Raw Azure imageResponse:",
+        "Raw OpenAI imageResponse:",
         JSON.stringify(imageResponse, null, 2)
       );
 
@@ -161,9 +100,9 @@ serve(async (req) => {
           }
         );
       } else {
-        console.error("No image data received from Azure OpenAI:", imageResponse);
+        console.error("No image data received from OpenAI:", imageResponse);
         throw new Error(
-          "No image generated from Azure or unexpected response structure."
+          "No image generated from OpenAI or unexpected response structure."
         );
       }
     } else if (pathname === "/chat") {
@@ -179,22 +118,15 @@ serve(async (req) => {
         );
       }
 
-      // --- Azure OpenAI Chat Completion ---
-      console.log(
-        `Initializing AzureOpenAI client for chat. Endpoint: ${text_azureOpenaiEndpoint}, API Version: ${text_apiVersion}, Deployment: ${text_deploymentNameEnv}`
-      );
-
-      const azureClient = new AzureOpenAI({
-        endpoint: text_apiVersion, // this is actually the endpoint for chat
-        apiKey: text_azureOpenaiEndpoint, // this is actually the API key for chat
-        apiVersion: text_azureOpenaiApiKey, // this is actually the API version for chat
-        deployment: text_deploymentNameEnv,
+      // --- OpenAI Chat Completion ---
+      const openai = new OpenAI({
+        apiKey: openaiApiKey,
       });
 
       try {
-        const chatResponse = await azureClient.chat.completions.create({
+        const chatResponse = await openai.chat.completions.create({
           messages: prompt,
-          model: "", // Model is specified by deployment
+          model: "gpt-3.5-turbo",
         });
         if (
           chatResponse.choices &&
