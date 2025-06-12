@@ -24,12 +24,12 @@ const ChatPage = () => {
   const [gptVersion, setGptVersion] = useMMKVString("gptVersion", storage);
   const [height, setHeight] = useState(0);
   const [key, setKey] = useMMKVString("apikey", keyStorage);
-  const [organization, setOrganization] = useMMKVString("org", keyStorage);
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const db = useSQLiteContext();
   let { id } = useLocalSearchParams<{ id: string }>();
 
-  if (!key || key === "" || !organization || organization === "") {
+  if (!key || key === "") {
     return <Redirect href={"/(auth)/(modal)/settings"} />;
   }
 
@@ -115,6 +115,8 @@ const ChatPage = () => {
     ]);
 
     // API call
+
+    console.log("body", JSON.stringify({ prompt: messagesForApi }));
     try {
       const response = await fetch("http://localhost:8000/chat", {
         method: "POST",
