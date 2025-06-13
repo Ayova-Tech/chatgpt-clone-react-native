@@ -19,12 +19,13 @@ import { Message, Role } from "@/utils/Interfaces";
 import MessageIdeas from "@/components/MessageIdeas";
 import { addChat, addMessage, getMessages } from "@/utils/Database";
 import { useSQLiteContext } from "expo-sqlite/next";
+import EventSource, { EventSourceListener } from "react-native-sse";
 
 const ChatPage = () => {
   const [gptVersion, setGptVersion] = useMMKVString("gptVersion", storage);
   const [height, setHeight] = useState(0);
   const [key, setKey] = useMMKVString("apikey", keyStorage);
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
   const db = useSQLiteContext();
   let { id } = useLocalSearchParams<{ id: string }>();
@@ -35,7 +36,12 @@ const ChatPage = () => {
 
   const [chatId, _setChatId] = useState(id);
   const chatIdRef = useRef(chatId);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   // https://stackoverflow.com/questions/55265255/react-usestate-hook-event-handler-using-initial-state
+
   function setChatId(id: string) {
     chatIdRef.current = id;
     _setChatId(id);
@@ -60,115 +66,107 @@ const ChatPage = () => {
 
   const getCompletion = async (text: string) => {
     let currentChatId = chatIdRef.current;
-
-    // Add user message to DB
+  
+    // Add user message to DB and UI
     if (messages.length === 0) {
-      // New chat
-      try {
-        const result = await addChat(db, text); // text is the first message title
-        const newChatIdNum = result.lastInsertRowId;
-        setChatId(newChatIdNum.toString());
-        currentChatId = newChatIdNum.toString();
-        await addMessage(db, newChatIdNum, { content: text, role: Role.User });
-      } catch (e) {
-        console.error("Failed to create new chat or add first message", e);
-        Alert.alert("Database Error", "Could not start a new chat.");
-        return;
-      }
-    } else if (currentChatId) {
-      // Existing chat
-      try {
-        await addMessage(db, parseInt(currentChatId), {
-          content: text,
-          role: Role.User,
-        });
-      } catch (e) {
-        console.error("Failed to add user message to existing chat", e);
-        Alert.alert("Database Error", "Could not save your message.");
-        return;
-      }
+      const result = await addChat(db, text);
+      const newChatId = result.lastInsertRowId;
+      setChatId(newChatId.toString());
+      currentChatId = newChatId.toString();
+      await addMessage(db, newChatId, { content: text, role: Role.User });
     } else {
-      console.error(
-        "Error: Chat ID is missing for an existing conversation thread."
-      );
-      Alert.alert(
-        "Error",
-        "Chat context is missing. Please try starting a new chat or reloading."
-      );
-      return;
+      await addMessage(db, parseInt(currentChatId!), {
+        content: text,
+        role: Role.User,
+      });
     }
-
-    // Prepare messages for API, based on history BEFORE current user input is added to UI state
-    const messagesForApi = [
-      ...messages.map(msg => ({
-        role: msg.role === Role.User ? 'user' : 'assistant', // Map Role.Bot to 'assistant' for API
-        content: msg.content,
-      })),
-      { role: 'user', content: text }, // Add current user's new message
-    ];
-
-    // UI update: Add user message and bot placeholder
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { role: Role.User, content: text },
-      { role: Role.Bot, content: "" }, // Placeholder for bot response
-    ]);
-
-    // API call
-
-    console.log("body", JSON.stringify({ prompt: messagesForApi }));
+  
+    // Update UI with user message
+    const newMessages = [...messages, { content: text, role: Role.User }];
+    setMessages(newMessages);
+  
+    // Add empty bot message as placeholder
+    setMessages(prev => [...prev, { role: Role.Bot, content: "" }]);
+  
+    const messagesForApi = newMessages.map(msg => ({
+      role: msg.role === Role.User ? "user" : "assistant",
+      content: msg.content,
+    }));
+  
     try {
-      const response = await fetch("http://localhost:8000/chat", {
+      // Create a new EventSource for this request
+      const es = new EventSource("http://localhost:8000/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: messagesForApi }),
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
-        Alert.alert(
-          "API Error",
-          `Failed to get completion: ${errorText || response.statusText}`
-        );
-        setMessages((prevMessages) => prevMessages.slice(0, -1)); // Remove bot placeholder
-        return;
-      }
-
-      const data = await response.json();
-      const botResponseContent = data.response || "Received an empty response.";
-
-      // Update bot placeholder with actual response
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        const botMessageIndex = updatedMessages.length - 1;
-        if (
-          botMessageIndex >= 0 &&
-          updatedMessages[botMessageIndex].role === Role.Bot
-        ) {
-          updatedMessages[botMessageIndex].content = botResponseContent;
-        }
-        return updatedMessages;
-      });
-
-      // Save bot's response to DB
-      if (currentChatId) {
+  
+      let fullResponse = "";
+  
+      const onMessage = (event: MessageEvent) => {
         try {
-          await addMessage(db, parseInt(currentChatId), {
-            content: botResponseContent,
-            role: Role.Bot,
-          });
+          if (event.data) {
+            const data = JSON.parse(event.data);
+            
+            if (data.done) {
+              // Stream is complete, save the full response
+              if (currentChatId && fullResponse) {
+                addMessage(db, parseInt(currentChatId), {
+                  content: fullResponse,
+                  role: Role.Bot,
+                });
+              }
+              es.close();
+              return;
+            }
+  
+            if (data.token) {
+              // Append the token to the response
+              fullResponse += data.token;
+              
+              // Update the UI with the new token
+              setMessages(prev => {
+                const lastMsg = prev[prev.length - 1];
+                if (lastMsg.role === Role.Bot) {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...lastMsg, content: fullResponse }
+                  ];
+                }
+                return prev;
+              });
+            } else if (data.error) {
+              console.error("Error from server:", data.error);
+              throw new Error(data.error);
+            }
+          }
         } catch (e) {
-          console.error("Failed to save bot message", e);
-          Alert.alert("Database Error", "Could not save the bot's response.");
+          console.error("Error processing message:", e);
+          es.close();
         }
-      }
-    } catch (error: any) {
-      console.error("Fetch Error:", error);
-      Alert.alert("Network Error", `Failed to connect: ${error.message}`);
-      setMessages((prevMessages) => prevMessages.slice(0, -1)); // Remove bot placeholder
+      };
+  
+      const onError = (error: Event) => {
+        console.error("SSE Error:", error);
+        es.close();
+      };
+  
+      es.addEventListener("message", onMessage);
+      es.addEventListener("error", onError);
+  
+      // Cleanup function
+      return () => {
+        es.removeEventListener("message", onMessage);
+        es.removeEventListener("error", onError);
+        if (es.readyState !== 2) { // 2 = CLOSED
+          es.close();
+        }
+      };
+  
+    } catch (error) {
+      console.error("Error in getCompletion:", error);
+      // Remove the loading message if there was an error
+      setMessages(prev => prev.slice(0, -1));
     }
   };
 

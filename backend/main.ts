@@ -6,10 +6,7 @@ console.log("generate-image-azure function called");
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import "jsr:@std/dotenv/load";
 
-import {
-  OpenAI,
-  APIError,
-} from "https://deno.land/x/openai@v4.69.0/mod.ts";
+import { OpenAI, APIError } from "https://deno.land/x/openai@v4.69.0/mod.ts";
 
 console.log(OpenAI);
 if (OpenAI) {
@@ -30,7 +27,8 @@ serve(async (req) => {
       console.error("Missing: " + missingVars.join(", "));
       return new Response(
         JSON.stringify({
-          error: "Server configuration error: Missing required environment variables.",
+          error:
+            "Server configuration error: Missing required environment variables.",
         }),
         {
           status: 500,
@@ -133,17 +131,27 @@ serve(async (req) => {
 
         // Convert AsyncIterable to a ReadableStream
         const encoder = new TextEncoder();
+        // In the streaming part of main.ts
         const body = new ReadableStream({
           async start(controller) {
             try {
               for await (const chunk of openaiStream) {
                 const token = chunk.choices?.[0]?.delta?.content ?? "";
-                if (token) controller.enqueue(encoder.encode(token));
+                if (token) {
+                  // Format as SSE message
+                  const message = JSON.stringify({ token });
+                  controller.enqueue(encoder.encode(`data: ${message}\n\n`));
+                }
               }
+              // Send a [DONE] message when the stream is complete
+              controller.enqueue(encoder.encode('data: {"done": true}\n\n'));
             } catch (e) {
               console.error("Streaming error:", e);
-              controller.error(e);
-            } finally {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ error: e.message })}\n\n`
+                )
+              );
               controller.close();
             }
           },
@@ -169,7 +177,9 @@ serve(async (req) => {
       }
     } else {
       return new Response(
-        JSON.stringify({ error: "Not Found. Supported paths: /image-generation, /chat" }),
+        JSON.stringify({
+          error: "Not Found. Supported paths: /image-generation, /chat",
+        }),
         {
           status: 404,
           headers: { "Content-Type": "application/json" },
